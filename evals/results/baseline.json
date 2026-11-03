@@ -1,0 +1,49 @@
+{
+  "meta": {
+    "llm": "litellm",
+    "embedder": "fastembed",
+    "reranker": "cross",
+    "index": {
+      "embedder": "BAAI/bge-small-en-v1.5",
+      "dim": 384,
+      "chunks": 716,
+      "documents": [
+        "brand_rules",
+        "fda_compounded_glp1",
+        "ftc_health_claims",
+        "wegovy_label",
+        "zepbound_label"
+      ],
+      "missing": [],
+      "corpus_sha": "32352f906c72",
+      "built_at": "2026-11-03T12:29:50",
+      "seconds": 135.05
+    }
+  },
+  "summary": {
+    "n": 25,
+    "pass_rate": 0.92,
+    "route_accuracy": 1.0,
+    "skill_accuracy": 1.0,
+    "retrieval_recall": 1.0,
+    "citation_validity": 1.0,
+    "groundedness": 0.967,
+    "key_fact_recall": 0.95,
+    "verdict_accuracy": 1.0,
+    "forbidden_rate": 0.0,
+    "escalation_rate": 0.095,
+    "cost_usd_total": 0.0446,
+    "cost_usd_per_q": 0.00178,
+    "judge_cost_usd_total": 0.19,
+    "latency_p50_ms": 12867.8,
+    "latency_p95_ms": 20474.9,
+    "failures_by_stage": {
+      "router": 0,
+      "planner": 0,
+      "retrieval": 0,
+      "answerer": 2,
+      "verifier": 0,
+      "grounding": 0
+    }
+  }
+}

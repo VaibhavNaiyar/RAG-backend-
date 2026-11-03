@@ -6,7 +6,8 @@ corpus/raw/*
 !corpus/raw/.gitkeep
 index/
 index-test/
-evals/results/
+evals/results/*
+!evals/results/baseline.json
 *.egg-info/
 .pytest_cache/
 .ruff_cache/
