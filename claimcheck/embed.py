@@ -48,7 +48,9 @@ class FastEmbedder:
         self.dim = 384
 
     def embed(self, texts: list[str], *, query: bool = False) -> np.ndarray:
-        it = self._m.query_embed(texts) if query else self._m.passage_embed(texts)
+        # fastembed's default batch of 256 pads every text to the longest one; on CPU that ran ~10x
+        # slower than small batches on the real corpus (128 chunks: 148 s at 128, 16 s at 16).
+        it = self._m.query_embed(texts) if query else self._m.passage_embed(texts, batch_size=16)
         return _norm(np.array(list(it), dtype=np.float32))
 
 
