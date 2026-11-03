@@ -2,7 +2,9 @@
 name: planner
 description: Choose which compliance skill handles an in-scope question, which
              documents to search, and the search queries to run. Use after the
-             intent router has accepted a question.
+             intent router has accepted a question. It plans and never
+             answers; the compliance_answerer writes the answer from what
+             the search returns.
 domains:    [health_marketing]
 purposes:   [planning]
 modalities: [unstructured]
@@ -35,4 +37,13 @@ answer.
 
 - Never invent a skill or a doc_id. Use only the names you were given.
 - A question with two asks gets two sub-queries, not one long one.
+- **When unsure whether a regulator or brand-rules document is needed, include
+  it.** The one exception is the other drug's label: never add it to a question
+  that names one drug.
 - `rationale` is one sentence an engineer can read in a trace.
+
+## Output
+
+One `Plan`: `skill` (a skill name exactly as given), `doc_ids` (catalogue ids,
+or empty for "search everything"), `sub_queries` (one to three strings) and
+`rationale`. The names are validated; `queries` is not `sub_queries`.

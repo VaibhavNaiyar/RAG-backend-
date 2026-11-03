@@ -2,7 +2,9 @@
 name: eval-judge
 description: Offline evaluation only. For each sentence of a final answer,
              decide whether the retrieved context supports it. Used by the eval
-             harness to score groundedness; never in the request path.
+             harness to score groundedness; never in the request path. For
+             checking claims before they reach a user, claim_verifier is used
+             instead.
 domains:    [health_marketing]
 purposes:   [evaluation]
 modalities: [unstructured]
@@ -24,4 +26,12 @@ stated but which adds a detail the context lacks).
 - Outside knowledge does not count. True-but-unstated is `unsupported`.
 - Do not reward hedged or vague claims: "may have side effects" supported by a
   passage listing specific side effects is `partial`.
-- One check per claim, same `index`.
+- Judge against ALL the context you are given, not only what the claim cites.
+  The citation check is the verifier's job; yours is whether the answer is true
+  to what was retrieved.
+- One check per claim, same `index`. Keep `reason` under twenty words.
+
+## Output
+
+One `VerifierReport` with `checks`: a list of `{index, label, reason, fix}`.
+`fix` is always `null` here: you score, you do not rewrite.

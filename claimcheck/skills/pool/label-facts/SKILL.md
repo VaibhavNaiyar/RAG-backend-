@@ -5,6 +5,8 @@ description: Report what the FDA prescribing information for Wegovy
              boxed warning, contraindications, warnings, interactions, clinical
              results — so marketing can quote it correctly. Use for "what does
              the label say" questions that are not a review of specific copy.
+             To review wording someone wants to publish, use claim-review
+             instead.
 domains:    [health_marketing]
 purposes:   [research]
 modalities: [unstructured]
@@ -26,3 +28,6 @@ verdict:    informational
 - Never mix the two drugs. A fact about tirzepatide is not a fact about
   semaglutide, even when the class labeling is similar.
 - When the question asks about both drugs, answer per drug.
+- Why this order: the answerer sees only what the search returned, so it cannot
+  answer from outside the corpus; the verifier runs last because it checks what
+  the answerer wrote.

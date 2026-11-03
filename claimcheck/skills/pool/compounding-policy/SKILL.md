@@ -4,7 +4,8 @@ description: Explain what FDA guidance and the brand rules say about compounded
              GLP-1 medication (compounded semaglutide or tirzepatide) — approval
              status, safety concerns, and what may be said about it in
              marketing. Use for compounding questions that are not a review of
-             specific copy.
+             specific copy. To review wording about a compounded product, use
+             claim-review instead.
 domains:    [health_marketing]
 purposes:   [research]
 modalities: [unstructured]
@@ -26,3 +27,6 @@ verdict:    informational
   effectiveness, or equivalent to a branded product.
 - Date-sensitive facts (shortage status, enforcement) must be attributed to the
   document and its date, not stated as current.
+- Why this order: the answerer sees only what the search returned, so it cannot
+  answer from outside the corpus; the verifier runs last because it checks what
+  the answerer wrote.
