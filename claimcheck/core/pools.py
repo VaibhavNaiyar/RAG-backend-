@@ -82,7 +82,7 @@ def skill_descriptions() -> list[str]:
 
 @lru_cache(maxsize=1)
 def _routes() -> dict[str, str]:
-    return (yaml.safe_load((ROOT / "config" / "models.yaml").read_text()) or {}).get("routes", {})
+    return (yaml.safe_load((ROOT / "config" / "models.yaml").read_text(encoding="utf-8")) or {}).get("routes", {})
 
 
 def resolve_model(spec: ModelSpec, settings) -> str:

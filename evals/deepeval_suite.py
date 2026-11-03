@@ -40,7 +40,7 @@ def main() -> None:
     from deepeval.test_case import LLMTestCase
 
     f = Path(args.file) if args.file else max(p for p in RESULTS.glob("2*.json"))
-    rows = json.loads(f.read_text())["goldens"][args.variant]
+    rows = json.loads(f.read_text(encoding="utf-8"))["goldens"][args.variant]
     if args.only:
         keep = set(args.only.split(","))
         rows = [r for r in rows if r["id"] in keep]

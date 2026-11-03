@@ -43,6 +43,7 @@ def _print_run(r) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
+    sys.stdout.reconfigure(encoding="utf-8")  # Windows pipes default to cp1252, which can't print "→" or "≥"
     ap = argparse.ArgumentParser(prog="claimcheck")
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("ingest")

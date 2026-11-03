@@ -7,7 +7,7 @@ from pathlib import Path
 import httpx
 
 url = os.environ.get("GRAFANA_URL", "http://localhost:3000").rstrip("/")
-dash = json.loads((Path(__file__).resolve().parents[1] / "infra/grafana/dashboards/claimcheck.json").read_text())
+dash = json.loads((Path(__file__).resolve().parents[1] / "infra/grafana/dashboards/claimcheck.json").read_text(encoding="utf-8"))
 r = httpx.post(f"{url}/api/dashboards/db", json={"dashboard": dash, "overwrite": True},
                auth=(os.environ.get("GRAFANA_USER", "admin"), os.environ.get("GRAFANA_PASSWORD", "admin")))
 print(r.status_code, r.text[:200])

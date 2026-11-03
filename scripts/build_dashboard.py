@@ -84,5 +84,5 @@ dash = {
     "panels": panels,
 }
 OUT.parent.mkdir(parents=True, exist_ok=True)
-OUT.write_text(json.dumps(dash, indent=2))
+OUT.write_text(json.dumps(dash, indent=2), encoding="utf-8")
 print(f"wrote {OUT} ({len(panels)} panels)")

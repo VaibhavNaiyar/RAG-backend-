@@ -53,7 +53,7 @@ HEADLINE = ["pass_rate", "route_accuracy", "skill_accuracy", "retrieval_recall",
 
 
 def load_goldens(args) -> list[dict]:
-    gs = yaml.safe_load((HERE / "goldens.yaml").read_text())["goldens"]
+    gs = yaml.safe_load((HERE / "goldens.yaml").read_text(encoding="utf-8"))["goldens"]
     if args.only:
         ids = set(args.only.split(","))
         gs = [g for g in gs if g["id"] in ids]
@@ -137,7 +137,7 @@ def print_comparison(aggs: dict[str, dict]) -> None:
 
 
 def gate(agg: dict, baseline: dict | None) -> list[str]:
-    t = yaml.safe_load((HERE / "thresholds.yaml").read_text())
+    t = yaml.safe_load((HERE / "thresholds.yaml").read_text(encoding="utf-8"))
     bad = []
     for m, lo in (t.get("min") or {}).items():
         if agg.get(m) is not None and agg[m] < lo:
@@ -154,6 +154,7 @@ def gate(agg: dict, baseline: dict | None) -> list[str]:
 
 
 def main(argv: list[str] | None = None) -> int:
+    sys.stdout.reconfigure(encoding="utf-8")  # Windows pipes default to cp1252, which can't print "→" or "≥"
     ap = argparse.ArgumentParser()
     ap.add_argument("--variants", default="baseline", help=f"comma list of {list(VARIANTS)}")
     ap.add_argument("--only", help="comma list of golden ids")
@@ -183,15 +184,15 @@ def main(argv: list[str] | None = None) -> int:
 
     out = RESULTS / f"{stamp}.json"
     meta = {"llm": base.llm_backend, "embedder": base.embedder, "reranker": base.reranker,
-            "index": json.loads((base.index_dir / "meta.json").read_text()) if (base.index_dir / "meta.json").exists() else {}}
-    out.write_text(json.dumps({"meta": meta, "summary": aggs, "goldens": all_scores}, indent=2))
+            "index": json.loads((base.index_dir / "meta.json").read_text(encoding="utf-8")) if (base.index_dir / "meta.json").exists() else {}}
+    out.write_text(json.dumps({"meta": meta, "summary": aggs, "goldens": all_scores}, indent=2), encoding="utf-8")
     print_comparison(aggs)
     print(f"\nresults -> {out.relative_to(ROOT)}")
 
     baseline_file = RESULTS / "baseline.json"
-    baseline = json.loads(baseline_file.read_text())["summary"] if baseline_file.exists() else None
+    baseline = json.loads(baseline_file.read_text(encoding="utf-8"))["summary"] if baseline_file.exists() else None
     if args.save_baseline:
-        baseline_file.write_text(json.dumps({"meta": meta, "summary": aggs[variants[0]]}, indent=2))
+        baseline_file.write_text(json.dumps({"meta": meta, "summary": aggs[variants[0]]}, indent=2), encoding="utf-8")
         print(f"baseline saved ({variants[0]})")
     if args.gate:
         problems = gate(aggs[variants[0]], baseline)

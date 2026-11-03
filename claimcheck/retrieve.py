@@ -58,9 +58,9 @@ def load_index(index_dir: str) -> Index:
     d = Path(index_dir)
     if not (d / "chunks.jsonl").exists():
         raise FileNotFoundError(f"No index at {d}. Run: python -m claimcheck.cli ingest")
-    chunks = [Chunk.model_validate_json(line) for line in (d / "chunks.jsonl").read_text().splitlines() if line]
+    chunks = [Chunk.model_validate_json(line) for line in (d / "chunks.jsonl").read_text(encoding="utf-8").splitlines() if line]
     vectors = np.load(d / "vectors.npy")
-    meta = json.loads((d / "meta.json").read_text())
+    meta = json.loads((d / "meta.json").read_text(encoding="utf-8"))
     bm25 = BM25Okapi([tokenize(f"{c.section} {c.text}") for c in chunks])
     return Index(chunks=chunks, vectors=vectors, bm25=bm25, meta=meta)
 

@@ -28,7 +28,7 @@ def looks_right(path: Path, body: bytes) -> bool:
 
 
 def main() -> int:
-    sources = yaml.safe_load((ROOT / "corpus/sources.yaml").read_text())["documents"]
+    sources = yaml.safe_load((ROOT / "corpus/sources.yaml").read_text(encoding="utf-8"))["documents"]
     failed = []
     with httpx.Client(follow_redirects=True, timeout=60, headers={"User-Agent": UA}) as http:
         for doc in sources:
