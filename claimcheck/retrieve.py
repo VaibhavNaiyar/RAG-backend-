@@ -168,4 +168,12 @@ class Retriever:
         queries = list(dict.fromkeys([*sub_queries, question]))  # original question always included
         fused = self._fuse([self._candidates(q, mask) for q in queries])
         pool = sorted(fused.values(), key=lambda h: -h.rrf)[: self.s.candidate_k]
-        return self._rerank(question, pool)
+        kept = self._rerank(question, pool)
+        if self.s.scope_floor:
+            # The margin cut keeps whatever the reranker likes best, which can drop a whole document
+            # the planner scoped (a claim review lost brand_rules). Each scoped document keeps its best.
+            for d in doc_ids:
+                best = max((h for h in pool if h.chunk.doc_id == d), key=lambda h: h.rerank or 0, default=None)
+                if best and not any(h.chunk.doc_id == d for h in kept):
+                    kept = (kept if len(kept) < self.s.top_k else kept[:-1]) + [best]
+        return kept

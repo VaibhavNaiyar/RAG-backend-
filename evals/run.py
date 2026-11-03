@@ -44,6 +44,7 @@ VARIANTS: dict[str, dict] = {
     # Margin-cut tuning: one dominant chunk (often a brand rule) left only the minimum 3.
     "keep5": {"rerank_min_keep": 5},
     "margin50": {"rerank_margin": 0.5},
+    "no_scope_floor": {"scope_floor": False},
     "deep": {"_mode": "deep"},
     # A deliberately bad prompt change, to prove the harness + verifier catch drift.
     "regressed_prompt": {"answerer_extra": DRIFT},

@@ -42,6 +42,7 @@ class Settings:
     top_k: int = 6               # evidence chunks handed to the answerer
     rerank_margin: float = 0.35  # drop chunks scoring this far below the best (normalised 0..1)
     rerank_min_keep: int = 3
+    scope_floor: bool = True     # every scoped document keeps its best passage through the margin cut
     chunk_chars: int = 900
     chunk_overlap: int = 150
 

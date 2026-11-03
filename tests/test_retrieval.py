@@ -19,3 +19,12 @@ def test_hybrid_fuses_both_retrievers(settings):
     top = hits[0]
     assert top.chunk.doc_id == "zepbound_label"
     assert top.bm25_rank is not None and top.vector_rank is not None
+
+
+def test_every_scoped_document_contributes_its_best_passage(settings):
+    # The margin cut kept only the strongest document; a claim review lost brand_rules entirely
+    # when the question's wording ("doctor-designed") scored weakly against every rule.
+    tight = settings.with_(rerank_min_keep=1)  # one dominant document, as on the real corpus
+    hits, _ = Retriever(tight).search("oral hormonal contraceptives", ["oral contraceptives barrier method"],
+                                      ["zepbound_label", "brand_rules"], allowed=["zepbound_label", "brand_rules"])
+    assert {h.chunk.doc_id for h in hits} == {"zepbound_label", "brand_rules"}
