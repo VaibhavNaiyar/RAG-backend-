@@ -30,7 +30,7 @@ planner        (fast)  picks a planner SKILL + doc scope + 1-3 sub-queries
                                     code drops / rewrites / escalates
    │
    ▼
-answer  ·  OTel spans → Tempo + Langfuse  ·  OTel metrics → Prometheus → Grafana
+answer  ·  OTel spans → Langfuse (traces, generations, cost, eval + live quality scores)
 ```
 
 ## Repo map
@@ -45,7 +45,7 @@ answer  ·  OTel spans → Tempo + Langfuse  ·  OTel metrics → Prometheus →
 | `claimcheck/verify.py` | Deterministic citation check + LLM labels + policy in code. |
 | `claimcheck/pipeline.py` | Orchestrator. Runs whatever steps the selected skill declares. |
 | `claimcheck/deep.py` | Same skills and tool, one `deepagents` agent. Used for architecture comparison. |
-| `claimcheck/telemetry.py` | One OTel provider feeds both Grafana (OTLP) and Langfuse. |
+| `claimcheck/telemetry.py` | One OTel provider; Langfuse attaches to it. Any OTLP backend is one env var away. |
 | `evals/` | Goldens, metrics, stage attribution, ablation variants, release gate. |
 | `corpus/` | `sources.yaml` (one doc per topic), `brand-rules.md`. |
 | `docs/` | `KT.md` (handover: start here), `ARCHITECTURE.md` (why), `SCALING.md` (what changes at 10k docs), `DEMO_SCRIPT.md`. |
@@ -68,7 +68,6 @@ python -m claimcheck.cli serve                  # UI at http://localhost:8000
 Observability (optional):
 
 ```bash
-docker compose up -d && python scripts/import_dashboard.py   # Grafana at :3000 → "ClaimCheck"
 # Langfuse: set LANGFUSE_PUBLIC_KEY / SECRET_KEY in .env (cloud free tier)
 python -m claimcheck.cli prompts push                        # SKILL.md bodies → Langfuse prompt management
 ```

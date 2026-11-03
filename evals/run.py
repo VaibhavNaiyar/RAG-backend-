@@ -7,9 +7,8 @@
     python -m evals.run --gate                           # CI: exit 1 on threshold / regression
     python -m evals.run --save-baseline                  # bless this run as the baseline
 
-Every golden run is a full trace (Tempo + Langfuse). Every metric is pushed as
-an OTel gauge (Grafana "Evals" row) and as a Langfuse score on the golden's
-trace, so a red number in a dashboard is one click from the trace that caused it.
+Every golden run is a full Langfuse trace. Every metric is written as a
+Langfuse score on the golden's trace (and as an OTel gauge if OTLP is on), so a red number in a dashboard is one click from the trace that caused it.
 """
 
 from __future__ import annotations

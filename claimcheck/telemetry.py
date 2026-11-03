@@ -3,10 +3,10 @@
 Every stage is an OpenTelemetry span and every number is an OTel metric. The
 same TracerProvider feeds:
 
-  * the OTLP collector  -> Tempo (traces) + Prometheus (metrics) -> Grafana
-  * Langfuse            -> LLM-level traces, generations, cost, eval scores
+  * Langfuse            -> LLM-level traces, generations, cost, eval + live scores
+  * any OTLP backend    -> optional, set OTEL_EXPORTER_OTLP_ENDPOINT
 
-So there is no "Langfuse code path" and "Grafana code path" to drift apart:
+So there is no separate "Langfuse code path" to drift from the spans:
 the pipeline only ever talks to OpenTelemetry. Langfuse is attached as an
 extra span processor on the same provider, and reads the `gen_ai.*` and
 `langfuse.*` attributes we set on spans.

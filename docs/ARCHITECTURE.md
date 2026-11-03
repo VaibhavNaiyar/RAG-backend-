@@ -109,16 +109,17 @@ skills/pool/claim-review/SKILL.md   a procedure: which steps, which sources, whi
 
 ## Observability
 
-There's one OpenTelemetry `TracerProvider`. The OTLP exporter sends to the
-Grafana LGTM stack (Tempo for traces, Prometheus for metrics). **Langfuse
-attaches to the same provider** and reads the `gen_ai.*` and `langfuse.*` span
-attributes, so there's no second instrumentation path to drift.
+There's one OpenTelemetry `TracerProvider`. **Langfuse attaches to it** and
+reads the `gen_ai.*` and `langfuse.*` span attributes, so there's no second
+instrumentation path to drift. Setting `OTEL_EXPORTER_OTLP_ENDPOINT` also sends
+the same spans and metrics to any OTLP backend; the demo doesn't need one.
 
 - Each question is one trace. The `cc.retrieve` span carries every hit with its
   scores. Each `cc.llm.*` span is a Langfuse generation with tokens and cost.
-- Metrics cover requests by outcome, latency per stage, cost per stage and
-  model, verifier supported fraction, removals and escalations, rerank top
-  score and scope widenings, plus eval metrics per variant as gauges.
+- Every answered question gets live scores on its trace: verifier supported
+  fraction, claims removed, escalated, scope widened. Langfuse charts them on
+  real traffic next to its built-in cost, latency and token views, so quality
+  is watched between eval runs, not only during them.
 - Eval scores are also written onto each golden's Langfuse trace, so a red
   number is one click from the trace that caused it.
 - **Steering with Langfuse.** `cli prompts push` uploads each agent's SKILL.md

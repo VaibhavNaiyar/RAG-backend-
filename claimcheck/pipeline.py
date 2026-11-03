@@ -12,7 +12,7 @@ second retrieval pass — is a markdown change, validated at load time by
 `pools.validate_pools()`.
 
 Every stage is a span under one root span per question, so a single trace in
-Tempo or Langfuse shows the whole run: route, plan, retrieved chunks with
+Langfuse shows the whole run: route, plan, retrieved chunks with
 their BM25/vector/rerank scores, the draft, each verifier label, cost.
 """
 
