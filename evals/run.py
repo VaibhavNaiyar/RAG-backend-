@@ -41,6 +41,9 @@ VARIANTS: dict[str, dict] = {
     "vector_only": {"retrieval_mode": "vector"},
     "bm25_only": {"retrieval_mode": "bm25"},
     "no_rerank": {"reranker": "none"},
+    # Margin-cut tuning: one dominant chunk (often a brand rule) left only the minimum 3.
+    "keep5": {"rerank_min_keep": 5},
+    "margin50": {"rerank_margin": 0.5},
     "deep": {"_mode": "deep"},
     # A deliberately bad prompt change, to prove the harness + verifier catch drift.
     "regressed_prompt": {"answerer_extra": DRIFT},
@@ -80,24 +83,28 @@ def run_variant(variant: str, goldens: list[dict], base: Settings, use_judge: bo
     judge_llm = make_llm(s.llm_backend)
     scores: list[GoldenScore] = []
     print(f"\n━━ variant: {variant}  ({len(goldens)} goldens)")
-    with telemetry.span("eval.suite", variant=variant, n=len(goldens)):
-        for g in goldens:
-            with telemetry.span("eval.golden", golden_id=g["id"], variant=variant):
-                try:
-                    r = runner.run(g["question"])
-                    sc = score(g, r, s, judge_llm, use_judge=use_judge)
-                except Exception as e:  # noqa: BLE001 - a crash is a failure row, not a dead suite
-                    sc = GoldenScore(id=g["id"], topic=g["topic"], question=g["question"], status="error",
-                                     route_ok=False, failed_stage="router", why=f"crashed: {type(e).__name__}: {e}"[:200])
-            scores.append(sc)
-            mark = "✔" if sc.passed else "✘"
-            line = f"  {mark} {sc.id:<9} {sc.status:<9} ${sc.cost_usd:.4f} {sc.latency_ms:>7.0f}ms"
-            if not sc.passed:
-                line += f"  [{sc.failed_stage}] {sc.why}"
-            print(line)
-            if verbose and sc.answer:
-                print("      " + sc.answer.replace("\n", "\n      ")[:600])
-            _push_scores(sc, variant)
+    # No suite-level span: each golden is its own trace, so its Langfuse scores land on its own run.
+    for g in goldens:
+        with telemetry.span("eval.golden", golden_id=g["id"], variant=variant):
+            try:
+                r = runner.run(g["question"])
+                sc = score(g, r, s, judge_llm, use_judge=use_judge)
+            except Exception as e:  # noqa: BLE001 - a crash is a failure row, not a dead suite
+                # LLM errors start with their stage ("planner: ..."); blame that stage, not the router.
+                stage = str(e).split(":", 1)[0]
+                stage = stage if stage in STAGES else "router"
+                sc = GoldenScore(id=g["id"], topic=g["topic"], question=g["question"], status="error",
+                                 route_ok=stage != "router", failed_stage=stage,
+                                 why=f"crashed: {type(e).__name__}: {e}"[:200])
+        scores.append(sc)
+        mark = "✔" if sc.passed else "✘"
+        line = f"  {mark} {sc.id:<9} {sc.status:<9} ${sc.cost_usd:.4f} {sc.latency_ms:>7.0f}ms"
+        if not sc.passed:
+            line += f"  [{sc.failed_stage}] {sc.why}"
+        print(line)
+        if verbose and sc.answer:
+            print("      " + sc.answer.replace("\n", "\n      ")[:600])
+        _push_scores(sc, variant)
     agg = aggregate(scores)
     for k, v in agg.items():
         if isinstance(v, (int, float)) and v is not None:

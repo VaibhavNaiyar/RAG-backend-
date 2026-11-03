@@ -20,3 +20,11 @@ def test_regression_is_caught_only_with_verifier_off(settings):
 def test_gate(settings):
     assert ev.gate({"route_accuracy": 0.5}, None)
     assert not ev.gate({"route_accuracy": 1.0, "forbidden_rate": 0.0}, None)
+
+
+def test_each_golden_gets_its_own_trace(settings):
+    # Langfuse scores attach per trace id; one shared trace would pile every golden's scores together.
+    gs = [g for g in ev.load_goldens(type("A", (), {"only": "SEMA-01,COMP-01", "topic": None, "demo": False})())]
+    scores, _ = ev.run_variant("baseline", gs, settings, use_judge=False, verbose=False)
+    ids = [s.trace_id for s in scores]
+    assert all(ids) and len(set(ids)) == len(ids)
