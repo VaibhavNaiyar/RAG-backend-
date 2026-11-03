@@ -70,3 +70,15 @@ def test_deep_mode_reports_the_skill_its_agent_read():
     plan = _plan_from(messages, "q")
     assert plan.skill == "label-facts" and plan.sub_queries == ["Zepbound maintenance dose"]
     assert _plan_from([Msg(content="declined")], "q") is None
+
+
+def test_deep_agent_can_read_skills_but_never_write_to_the_pool():
+    # Its file backend is the package's skills folder; a deep run wrote skills/tmp/draft.txt there.
+    pytest.importorskip("deepagents")
+    from deepagents.middleware.filesystem import _check_fs_permission
+
+    from claimcheck.deep import _read_only
+
+    assert _check_fs_permission(_read_only(), "write", "/pool/claim-review/SKILL.md") == "deny"
+    assert _check_fs_permission(_read_only(), "write", "/tmp/draft.txt") == "deny"
+    assert _check_fs_permission(_read_only(), "read", "/pool/claim-review/SKILL.md") == "allow"

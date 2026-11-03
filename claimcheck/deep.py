@@ -69,6 +69,13 @@ def _plan_from(messages: list, question: str) -> Plan | None:
                 rationale="deep agent read this skill")
 
 
+def _read_only() -> list:
+    """The file backend IS the package's skills folder: the agent may read skills, never write there."""
+    from deepagents import FilesystemPermission
+
+    return [FilesystemPermission(operations=["write"], paths=["/**"], mode="deny")]
+
+
 def _to_langchain(model: str) -> str:
     """litellm 'anthropic/claude-x' -> langchain 'anthropic:claude-x'."""
     return model.replace("/", ":", 1) if "/" in model else model
@@ -103,6 +110,7 @@ def build(settings: Settings, retriever: Retriever, collected: list[Hit]):
         system_prompt=SYSTEM.format(docs=", ".join(retriever.index.doc_ids)),
         skills=["/pool/"],
         backend=FilesystemBackend(root_dir=str(PKG / "skills"), virtual_mode=True),
+        permissions=_read_only(),
         subagents=[{
             "name": verifier.name,
             "description": verifier.description,
