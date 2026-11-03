@@ -1,0 +1,24 @@
+# Local observability: one container = OTel Collector + Tempo (traces) +
+# Prometheus (metrics) + Loki + Grafana. The app exports OTLP to :4318.
+#
+#   docker compose up -d
+#   python scripts/import_dashboard.py      # loads infra/grafana/dashboards/claimcheck.json
+#   open http://localhost:3000               (dashboards -> "ClaimCheck")
+#
+# Langfuse is used as a cloud project (free tier) — set LANGFUSE_* in .env.
+# To self-host it instead, see https://langfuse.com/self-hosting (it needs
+# Postgres + ClickHouse + Redis + S3, too heavy to bundle with a demo).
+services:
+  lgtm:
+    image: grafana/otel-lgtm:latest   # pin to a tag you have tested
+    ports:
+      - "3000:3000"   # Grafana
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP  <- OTEL_EXPORTER_OTLP_ENDPOINT
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+    volumes:
+      - lgtm-data:/data
+volumes:
+  lgtm-data:

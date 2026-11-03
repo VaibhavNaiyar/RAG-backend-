@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ClaimCheck</title>
+<style>
+  :root{
+    --paper:#f6f4ef; --card:#fffdf9; --ink:#1d1b18; --muted:#6f6a61; --rule:#e3ded3;
+    --red:#b3261e; --red-bg:#fbeceb; --green:#1f6f43; --green-bg:#e8f3ec; --amber:#8a5a00; --amber-bg:#fbf1dc;
+    --blue:#24508c; --blue-bg:#e9eff8; --mark:#fff1a8;
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,system-ui,sans-serif;
+    --mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.55 var(--sans)}
+  header{display:flex;align-items:baseline;gap:14px;padding:22px 32px 14px;border-bottom:1px solid var(--rule)}
+  header h1{font:600 22px var(--serif);margin:0;letter-spacing:.2px}
+  header .sub{color:var(--muted);font-size:13px}
+  header .env{margin-left:auto;font:12px var(--mono);color:var(--muted)}
+  main{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(320px,1fr);gap:24px;padding:24px 32px 48px;max-width:1440px;margin:0 auto}
+  @media (max-width:980px){main{grid-template-columns:1fr;padding:16px}}
+  .card{background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:20px 22px}
+  label.small{font:600 11px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  textarea{width:100%;min-height:84px;margin:8px 0 10px;padding:12px 14px;border:1px solid var(--rule);border-radius:8px;
+    font:16px/1.45 var(--serif);background:#fff;color:var(--ink);resize:vertical}
+  textarea:focus{outline:2px solid var(--blue-bg);border-color:var(--blue)}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  button.go{background:var(--ink);color:#fff;border:0;border-radius:8px;padding:9px 18px;font:600 14px var(--sans);cursor:pointer}
+  button.go:disabled{opacity:.45;cursor:wait}
+  .toggle{display:flex;border:1px solid var(--rule);border-radius:8px;overflow:hidden}
+  .toggle button{border:0;background:#fff;padding:7px 12px;font:13px var(--sans);color:var(--muted);cursor:pointer}
+  .toggle button.on{background:var(--ink);color:#fff}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+  .chip{border:1px solid var(--rule);background:#fff;border-radius:999px;padding:4px 11px;font-size:12.5px;color:var(--muted);cursor:pointer}
+  .chip:hover{color:var(--ink);border-color:var(--ink)}
+  #answer{margin-top:18px}
+  .stamp{display:inline-block;font:700 13px var(--mono);letter-spacing:.14em;padding:6px 12px;border:2px solid;border-radius:4px;transform:rotate(-1.2deg)}
+  .v-not_allowed{color:var(--red);background:var(--red-bg)}
+  .v-allowed{color:var(--green);background:var(--green-bg)}
+  .v-needs_review{color:var(--amber);background:var(--amber-bg)}
+  .v-informational{color:var(--blue);background:var(--blue-bg)}
+  .v-refused{color:var(--muted);background:#f0eee9}
+  .summary{font:19px/1.5 var(--serif);margin:14px 0 6px}
+  .claims{list-style:none;padding:0;margin:14px 0 0}
+  .claims li{padding:9px 0 9px 16px;border-left:2px solid var(--rule);margin-bottom:6px}
+  .claims li.removed{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--red);border-left-color:var(--red)}
+  .claims li.rewritten{border-left-color:var(--amber)}
+  .claims .why{display:block;font-size:12px;color:var(--red);text-decoration:none;margin-top:2px}
+  .claims li.rewritten .why{color:var(--amber)}
+  .ref{font:600 11px var(--mono);background:var(--blue-bg);color:var(--blue);border-radius:4px;padding:1px 5px;margin-left:4px;cursor:pointer;white-space:nowrap}
+  .rewrite{margin-top:16px;padding:12px 14px;background:var(--green-bg);border-radius:8px;font:15px/1.5 var(--serif)}
+  .rewrite b{font:600 11px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--green);display:block;margin-bottom:3px}
+  .note{margin-top:14px;font-size:13px;color:var(--muted)}
+  .evidence{margin-top:22px}
+  .ev{padding:12px 0;border-top:1px solid var(--rule);transition:background .2s}
+  .ev.hl{background:var(--mark)}
+  .ev .src{font-size:12.5px;color:var(--muted)}
+  .ev .src b{font:600 12px var(--mono);color:var(--blue);margin-right:6px}
+  .ev .txt{font:14px/1.5 var(--serif);margin-top:4px;max-height:5.6em;overflow:hidden}
+  .ev.open .txt{max-height:none}
+  .scores{display:flex;gap:12px;font:11px var(--mono);color:var(--muted);margin-top:5px}
+  .bar{display:inline-block;width:60px;height:5px;background:var(--rule);border-radius:3px;vertical-align:middle;margin-left:4px}
+  .bar i{display:block;height:100%;background:var(--blue);border-radius:3px}
+  /* trace panel */
+  aside .card+ .card{margin-top:16px}
+  .kv{display:grid;grid-template-columns:96px 1fr;gap:6px 12px;font-size:13.5px;margin-top:10px}
+  .kv dt{color:var(--muted)} .kv dd{margin:0}
+  .mono{font-family:var(--mono);font-size:12.5px}
+  .stages{list-style:none;padding:0;margin:12px 0 0}
+  .stages li{display:grid;grid-template-columns:18px 92px 1fr auto;gap:8px;align-items:center;padding:7px 0;border-top:1px solid var(--rule);font-size:13px}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--ink)}
+  .stages .m{color:var(--muted);font:11.5px var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .stages .c{font:11.5px var(--mono);text-align:right}
+  .totals{display:flex;justify-content:space-between;margin-top:10px;font:600 13px var(--mono)}
+  .vlabels{margin-top:10px;font-size:13px}
+  .vlabels div{display:flex;gap:8px;padding:4px 0}
+  .pill{font:600 10.5px var(--mono);padding:1px 6px;border-radius:4px;text-transform:uppercase}
+  .p-supported{background:var(--green-bg);color:var(--green)} .p-partial{background:var(--amber-bg);color:var(--amber)} .p-unsupported{background:var(--red-bg);color:var(--red)}
+  .empty{color:var(--muted);font-size:13.5px}
+  .spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--rule);border-top-color:var(--ink);border-radius:50%;animation:s 0.8s linear infinite;vertical-align:-2px}
+  @keyframes s{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<header>
+  <h1>ClaimCheck</h1>
+  <span class="sub">What can marketing say about GLP-1 treatment? Answers only from FDA labels, FDA &amp; FTC guidance and brand rules.</span>
+  <span class="env" id="env"></span>
+</header>
+<main>
+  <section>
+    <div class="card">
+      <label class="small" for="q">Question or copy to review</label>
+      <textarea id="q" placeholder='e.g. Can we say "clinically proven weight loss" for compounded semaglutide?'></textarea>
+      <div class="row">
+        <button class="go" id="go">Check</button>
+        <div class="toggle" id="mode"><button data-v="pipeline" class="on">Pipeline</button><button data-v="deep">Deep agent</button></div>
+        <div class="toggle" id="verifier"><button data-v="1" class="on">Verifier on</button><button data-v="0">off</button></div>
+        <span id="busy"></span>
+      </div>
+      <div class="chips" id="chips"></div>
+    </div>
+    <div id="answer"></div>
+  </section>
+  <aside>
+    <div class="card" id="trace"><label class="small">Run trace</label><p class="empty">Each stage, its model, cost and latency appear here.</p></div>
+    <div class="card" id="verif"><label class="small">Verifier</label><p class="empty">Per-claim labels from the claim_verifier agent.</p></div>
+  </aside>
+</main>
+<script>
+const EXAMPLES = [
+  'Can we say "Clinically proven weight loss" in an ad for our compounded semaglutide?',
+  'Headline idea: "FDA-approved semaglutide, same as Wegovy, $199/month." OK to publish?',
+  'What does the Zepbound label say about oral hormonal contraceptives?',
+  'Is compounded semaglutide FDA-approved?',
+  'What do we have to disclose when an ad uses customer testimonials?',
+  "I'm on Wegovy 1.7 mg and feel nauseous, should I stay on this dose?",
+];
+const $ = s => document.querySelector(s);
+const esc = s => (s ?? "").toString().replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const state = {mode: "pipeline", verifier: true};
+
+function toggle(id, key, map) {
+  $(id).addEventListener("click", e => {
+    if (!e.target.dataset.v) return;
+    $(id).querySelectorAll("button").forEach(b => b.classList.toggle("on", b === e.target));
+    state[key] = map(e.target.dataset.v);
+  });
+}
+toggle("#mode", "mode", v => v);
+toggle("#verifier", "verifier", v => v === "1");
+EXAMPLES.forEach(t => { const c = document.createElement("span"); c.className = "chip"; c.textContent = t.length > 58 ? t.slice(0, 56) + "…" : t;
+  c.title = t; c.onclick = () => { $("#q").value = t; ask(); }; $("#chips").appendChild(c); });
+$("#go").onclick = ask;
+$("#q").addEventListener("keydown", e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) ask(); });
+fetch("/api/health").then(r => r.json()).then(h => { $("#env").textContent = `${h.llm} · ${h.index?.chunks ?? "?"} chunks · ${h.index?.embedder ?? ""}${h.langfuse ? " · langfuse" : ""}`; }).catch(() => {});
+
+async function ask() {
+  const question = $("#q").value.trim(); if (!question) return;
+  $("#go").disabled = true; $("#busy").innerHTML = '<span class="spinner"></span>';
+  try {
+    const r = await fetch("/api/ask", {method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({question, mode: state.mode, use_verifier: state.verifier})});
+    if (!r.ok) throw new Error(await r.text());
+    render(await r.json());
+  } catch (e) { $("#answer").innerHTML = `<div class="card"><p class="note">Error: ${esc(e.message)}</p></div>`; }
+  finally { $("#go").disabled = false; $("#busy").textContent = ""; }
+}
+
+function render(r) {
+  const verdict = r.status === "refused" ? "refused" : (r.final?.verdict ?? "needs_review");
+  const label = {not_allowed: "NOT ALLOWED", allowed: "ALLOWED", needs_review: "NEEDS REVIEW", informational: "FROM THE SOURCES", refused: "OUT OF SCOPE"}[verdict];
+  const checks = Object.fromEntries((r.verification?.checks ?? []).map(c => [c.index, c]));
+  const refs = cs => (cs || []).map(x => `<span class="ref" data-ref="${esc(x)}">${esc(x)}</span>`).join("");
+  let claims = "";
+  if (r.draft?.claims?.length) {
+    claims = r.draft.claims.map((c, i) => {
+      const ck = checks[i];
+      if (ck && ck.label === "unsupported") return `<li class="removed">${esc(c.text)}${refs(c.citations)}<span class="why">removed by verifier — ${esc(ck.reason)}</span></li>`;
+      if (ck && ck.label === "partial" && ck.fix) return `<li class="rewritten">${esc(ck.fix)}${refs(c.citations)}<span class="why">rewritten by verifier — was: “${esc(c.text)}”</span></li>`;
+      if (ck && ck.label === "partial") return `<li class="removed">${esc(c.text)}${refs(c.citations)}<span class="why">removed — partially supported, no safe fix</span></li>`;
+      return `<li>${esc(c.text)}${refs(c.citations)}</li>`;
+    }).join("");
+  }
+  const summary = r.status === "answered" ? r.final?.summary : r.message;
+  const ev = (r.hits || []).map(h => {
+    const c = h.chunk, rr = Math.max(0, Math.min(1, h.rerank ?? 0));
+    return `<div class="ev" id="ev-${esc(h.ref)}"><div class="src"><b>${esc(h.ref)}</b>${esc(h.citation)}</div>
+      <div class="txt">${esc(c.text)}</div>
+      <div class="scores"><span>bm25 #${h.bm25_rank ?? "–"}</span><span>vector #${h.vector_rank ?? "–"}</span><span>rerank ${rr.toFixed(2)}<span class="bar"><i style="width:${rr * 100}%"></i></span></span></div></div>`;
+  }).join("");
+  $("#answer").innerHTML = `<div class="card">
+      <span class="stamp v-${verdict}">${label}</span>
+      ${r.status === "escalated" ? '<span class="note" style="margin-left:10px">escalated to compliance</span>' : ""}
+      <p class="summary">${esc(summary)}</p>
+      ${claims ? `<ul class="claims">${claims}</ul>` : ""}
+      ${r.final?.suggested_rewrite ? `<div class="rewrite"><b>Compliant rewrite</b>${esc(r.final.suggested_rewrite)}</div>` : ""}
+      ${r.status === "escalated" && r.message ? `<p class="note">${esc(r.message)}</p>` : ""}
+      ${ev ? `<div class="evidence"><label class="small">Evidence (${r.hits.length})${r.retried_unscoped ? " · scope widened" : ""}</label>${ev}</div>` : ""}
+      <p class="note">Internal tool. Not legal advice — final copy goes through human compliance review.</p></div>`;
+  document.querySelectorAll(".ref").forEach(el => {
+    const t = () => document.getElementById("ev-" + el.dataset.ref);
+    el.onmouseenter = () => t()?.classList.add("hl"); el.onmouseleave = () => t()?.classList.remove("hl");
+    el.onclick = () => { const e = t(); if (e) { e.classList.toggle("open"); e.scrollIntoView({behavior: "smooth", block: "center"}); } };
+  });
+  renderTrace(r, checks);
+}
+
+function renderTrace(r, checks) {
+  const stages = (r.usage || []).map(u => `<li><span class="dot"></span><span>${esc(u.stage)}</span>
+      <span class="m" title="${esc(u.model)}">${esc(u.model)} · ${u.input_tokens}→${u.output_tokens} tok</span>
+      <span class="c">$${u.cost_usd.toFixed(5)} · ${Math.round(u.latency_ms)}ms</span></li>`).join("");
+  $("#trace").innerHTML = `<label class="small">Run trace · ${esc(r.mode)}</label>
+    <dl class="kv">
+      <dt>status</dt><dd><b>${esc(r.status)}</b></dd>
+      <dt>route</dt><dd>${esc(r.route?.route ?? "–")} <span class="note">${esc(r.route?.reason ?? "")}</span></dd>
+      <dt>skill</dt><dd class="mono">${esc(r.plan?.skill ?? "–")}</dd>
+      <dt>scope</dt><dd class="mono">${esc((r.plan?.doc_ids ?? []).join(", ") || "all documents")}</dd>
+      <dt>queries</dt><dd>${(r.plan?.sub_queries ?? []).map(q => `<div>“${esc(q)}”</div>`).join("") || "–"}</dd>
+      <dt>trace id</dt><dd class="mono">${esc(r.trace_id || "–")}</dd>
+    </dl>
+    ${stages ? `<ul class="stages">${stages}</ul>` : ""}
+    <div class="totals"><span>total</span><span>$${r.cost_usd.toFixed(5)} · ${Math.round(r.latency_ms)} ms</span></div>`;
+  const v = r.verification;
+  if (!v) { $("#verif").innerHTML = `<label class="small">Verifier</label><p class="empty">Not run for this question.</p>`; return; }
+  if (v.skipped) { $("#verif").innerHTML = `<label class="small">Verifier</label><p class="empty">Off — the draft went straight to the user.</p>`; return; }
+  const rows = (v.checks || []).map(c => `<div><span class="pill p-${c.label}">${c.label}</span><span>claim ${c.index + 1} — ${esc(c.reason)}</span></div>`).join("");
+  $("#verif").innerHTML = `<label class="small">Verifier</label>
+    <dl class="kv"><dt>supported</dt><dd><b>${Math.round(v.supported_fraction * 100)}%</b></dd>
+    <dt>removed</dt><dd>${v.removed}</dd><dt>rewritten</dt><dd>${v.rewritten}</dd>
+    <dt>bad refs</dt><dd class="mono">${esc((v.invalid_citations || []).join(", ") || "none")}</dd>
+    <dt>escalate</dt><dd>${v.escalate ? "yes" : "no"}</dd></dl><div class="vlabels">${rows}</div>`;
+}
+</script>
+</body>
+</html>

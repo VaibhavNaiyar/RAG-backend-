@@ -1,0 +1,23 @@
+# Eval-only. Scores groundedness of the FINAL answer against ALL retrieved
+# context, on the judge route (a stronger model than the answerer),
+# so the system is not grading its own homework. Never runs in production.
+name: eval_judge
+
+domains:    [health_marketing]
+purposes:   [evaluation]
+modalities: [unstructured]
+
+model:
+  provider: gateway
+  name: judge
+  temperature: 0.0
+  max_tokens: 900
+
+skill: ./SKILL.md
+tools: []
+
+budget:
+  max_steps: 1
+
+response_format: VerifierReport
+writes: [groundedness]

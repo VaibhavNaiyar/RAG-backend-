@@ -1,0 +1,46 @@
+# One document per topic, on purpose. See docs/SCALING.md for what changes at 10k.
+#
+# `urls` are tried in order by scripts/fetch_corpus.py. If every URL fails
+# (sites move PDFs around), download the file yourself and save it as `file`.
+# `kind` is what the planner scopes on; `topic` is what the goldens are grouped by.
+
+documents:
+  - id: wegovy_label
+    title: WEGOVY (semaglutide) injection — FDA Prescribing Information
+    kind: fda_label
+    topic: semaglutide_label
+    file: corpus/raw/wegovy_label.pdf
+    urls:
+      - https://dailymed.nlm.nih.gov/dailymed/getFile.cfm?setid=ee06186f-2aa3-4990-a760-757579d8f77b&type=pdf
+      - https://www.novo-pi.com/wegovy.pdf
+
+  - id: zepbound_label
+    title: ZEPBOUND (tirzepatide) injection — FDA Prescribing Information
+    kind: fda_label
+    topic: tirzepatide_label
+    file: corpus/raw/zepbound_label.pdf
+    urls:
+      - https://dailymed.nlm.nih.gov/dailymed/getFile.cfm?setid=487cd7e7-434c-4925-99fa-aa80b1cc776b&type=pdf
+      - https://pi.lilly.com/us/zepbound-uspi.pdf
+
+  - id: fda_compounded_glp1
+    title: FDA — Concerns with Unapproved GLP-1 Drugs Used for Weight Loss
+    kind: fda_guidance
+    topic: compounding
+    file: corpus/raw/fda_compounded_glp1.html
+    urls:
+      - https://www.fda.gov/drugs/postmarket-drug-safety-information-patients-and-providers/fdas-concerns-unapproved-glp-1-drugs-used-weight-loss
+
+  - id: ftc_health_claims
+    title: FTC — Health Products Compliance Guidance (Dec 2022)
+    kind: ftc_guidance
+    topic: advertising
+    file: corpus/raw/ftc_health_claims.pdf
+    urls:
+      - https://www.ftc.gov/system/files/ftc_gov/pdf/Health-Products-Compliance-Guidance.pdf
+
+  - id: brand_rules
+    title: Internal brand & claims rules (demo, not legal advice)
+    kind: brand_rules
+    topic: brand
+    file: corpus/brand-rules.md

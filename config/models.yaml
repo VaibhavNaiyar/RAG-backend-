@@ -1,0 +1,10 @@
+# Model routes. An agent.yaml says `model: {provider: gateway, name: fast}`;
+# this file says what "fast" means today. Changing a model is a one-line diff
+# here, reviewed like code, with no agent folder touched.
+#
+# Resolution order:  CC_FAST_MODEL / CC_SMART_MODEL / CC_JUDGE_MODEL env  >  this file.
+
+routes:
+  fast:  anthropic/claude-haiku-5-5    # intent_router, planner, claim_verifier
+  smart: anthropic/claude-sonnet-5-5   # compliance_answerer
+  judge: anthropic/claude-opus-5-5    # eval_judge — a stronger tier than the answerer it grades

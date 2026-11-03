@@ -1,0 +1,8 @@
+# SYNTHETIC test corpus: short paraphrased stand-ins so tests and the offline
+# harness run without downloading anything. Never used for real answers.
+documents:
+  - {id: wegovy_label, title: "WEGOVY label (test fixture)", kind: fda_label, topic: semaglutide_label, file: tests/fixtures/wegovy.md}
+  - {id: zepbound_label, title: "ZEPBOUND label (test fixture)", kind: fda_label, topic: tirzepatide_label, file: tests/fixtures/zepbound.md}
+  - {id: fda_compounded_glp1, title: "FDA compounded GLP-1 concerns (test fixture)", kind: fda_guidance, topic: compounding, file: tests/fixtures/fda_compounded.md}
+  - {id: ftc_health_claims, title: "FTC health products guidance (test fixture)", kind: ftc_guidance, topic: advertising, file: tests/fixtures/ftc.md}
+  - {id: brand_rules, title: "Internal brand & claims rules", kind: brand_rules, topic: brand, file: corpus/brand-rules.md}

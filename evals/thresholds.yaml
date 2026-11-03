@@ -1,0 +1,21 @@
+# The release gate. `python -m evals.run --gate` exits non-zero when any
+# `min` is missed, any `max` is exceeded, or a metric regresses more than
+# `max_regression` against evals/results/baseline.json.
+#
+# Set from the first honest run, then ratcheted up — never down to make a
+# red run green.
+
+min:
+  route_accuracy: 0.95
+  retrieval_recall: 0.90
+  citation_validity: 0.95
+  groundedness: 0.85
+  key_fact_recall: 0.80
+  verdict_accuracy: 0.85
+max:
+  forbidden_rate: 0.0
+  cost_usd_per_q: 0.04     # estimate: ~$0.025 = 3 Haiku calls + 1 Sonnet call
+  latency_p95_ms: 20000
+
+# Allowed drop vs baseline before the gate fails (absolute).
+max_regression: 0.05

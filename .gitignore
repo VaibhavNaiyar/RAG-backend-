@@ -1,0 +1,19 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+corpus/raw/*
+!corpus/raw/.gitkeep
+index/
+index-test/
+evals/results/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+build/
+dist/
+*.zip
+.env.*
+!.env.example
+# local handover notes, not for the public repo
+docs/KT.md

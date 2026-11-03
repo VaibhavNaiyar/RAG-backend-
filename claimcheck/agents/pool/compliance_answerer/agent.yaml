@@ -1,0 +1,27 @@
+# The only agent on the smart route: it is the one that has to reason across
+# evidence. Everything around it is cheap and deterministic where possible.
+name: compliance_answerer
+
+domains:    [health_marketing]
+purposes:   [research]
+modalities: [unstructured]
+
+model:
+  provider: gateway
+  name: smart
+  temperature: 0.0
+  max_tokens: 1400
+
+skill: ./SKILL.md
+
+# Retrieval happens BEFORE this agent, as a declared tool step of the planner
+# skill. The answerer is handed numbered evidence and nothing else, so it
+# cannot reach outside what was retrieved.
+tools: []
+
+budget:
+  max_steps: 1
+  max_cost_usd: 0.03
+
+response_format: Answer
+writes: [draft_answer]
