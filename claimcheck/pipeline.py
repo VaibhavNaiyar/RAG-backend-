@@ -111,6 +111,13 @@ class Pipeline:
                    "langfuse.trace.output": run.message},
             )
         wall = (time.perf_counter() - t0) * 1000
+        if run.verification and not run.verification.skipped:  # skipped would report a fake 100%
+            # Live quality on every real question, not only goldens: Langfuse charts these per trace.
+            v = run.verification
+            for name, value in (("supported_fraction", v.supported_fraction), ("claims_removed", v.removed),
+                                ("escalated", float(run.status == "escalated")),
+                                ("widened_scope", float(run.retried_unscoped))):
+                telemetry.score(run.trace_id, f"live.{name}", float(value))
         telemetry.record_request(run.status, run.route.route if run.route else "", run.plan.skill if run.plan else "",
                                  "pipeline", run.cost_usd, wall)
         return run

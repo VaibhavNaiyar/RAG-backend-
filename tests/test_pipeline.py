@@ -41,3 +41,16 @@ def test_trace_and_cost_recorded(pipeline):
     r = pipeline.run("What does the Zepbound label say about oral contraceptives?")
     assert len(r.trace_id) == 32
     assert [u.stage for u in r.usage] == ["router", "planner", "answerer", "verifier"]
+
+
+def test_every_answered_question_gets_live_quality_scores(pipeline, monkeypatch):
+    # Evals run on 25 goldens; these scores chart answer quality on real traffic in Langfuse.
+    from claimcheck import telemetry
+
+    seen = {}
+    monkeypatch.setattr(telemetry, "score", lambda trace_id, name, value, **kw: seen.update({name: value}))
+    pipeline.run("What is the maintenance dosage of Wegovy?")
+    assert set(seen) == {"live.supported_fraction", "live.claims_removed", "live.escalated", "live.widened_scope"}
+    seen.clear()
+    pipeline.run("Write a poem about the sea")
+    assert not seen  # a refusal has no answer to score
