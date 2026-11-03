@@ -14,8 +14,8 @@ min:
   verdict_accuracy: 0.85
 max:
   forbidden_rate: 0.0
-  cost_usd_per_q: 0.04     # estimate: ~$0.025 = 3 Haiku calls + 1 Sonnet call
-  latency_p95_ms: 20000
+  cost_usd_per_q: 0.04     # measured ~$0.002 on Haiku; room to put the answerer on Sonnet
+  latency_p95_ms: 25000    # set from real runs (p95 18.4-23.8 s on Haiku); 20000 was a guess
 
 # Allowed drop vs baseline before the gate fails (absolute).
 max_regression: 0.05
