@@ -9,10 +9,13 @@ modalities: [unstructured]
 model:
   provider: gateway
   name: fast
-  temperature: 0.0
-  max_tokens: 2000
+  effort: low         # one narrow comparison per claim
+  max_tokens: 4000    # headroom: thinking tokens count against this cap
 
 skill: ./SKILL.md
+
+# No tools. It sees only each claim and the passages that claim cites, so it
+# cannot go looking for support the answerer did not cite.
 tools: []
 
 budget:

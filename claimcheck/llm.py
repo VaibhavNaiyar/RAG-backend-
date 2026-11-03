@@ -73,6 +73,7 @@ class LLM:
         payload: dict[str, Any],
         schema: type[T],
         max_tokens: int = 1200,
+        effort: str | None = None,
     ) -> tuple[T, StageUsage]:
         user = (
             "INPUT:\n" + json.dumps(payload, indent=1, ensure_ascii=False)
@@ -93,7 +94,7 @@ class LLM:
         ) as s:
             last_err = ""
             for attempt in range(2):
-                text, tin, tout, cost = self._complete(model, messages, max_tokens)
+                text, tin, tout, cost, finish = self._complete(model, messages, max_tokens, effort)
                 usage.input_tokens += tin
                 usage.output_tokens += tout
                 usage.cost_usd += cost
@@ -102,7 +103,9 @@ class LLM:
                     break
                 except (ValidationError, ValueError) as e:
                     last_err = str(e)[:600]
-                    log.warning("%s: invalid JSON on attempt %d: %s", stage, attempt + 1, last_err[:160])
+                    log.warning("%s: invalid JSON on attempt %d (finish=%s, out=%d tokens): %s",
+                                stage, attempt + 1, finish, tout, last_err[:160])
+                    telemetry.set_attrs(s, **{f"cc.attempt{attempt + 1}.finish_reason": finish})
                     messages = messages + [
                         {"role": "assistant", "content": text},
                         {"role": "user", "content": f"That failed validation:\n{last_err}\nReturn corrected JSON only."},
@@ -124,11 +127,15 @@ class LLM:
         telemetry.record_llm(stage, model, usage.input_tokens, usage.output_tokens, usage.cost_usd)
         return obj, usage
 
-    def _complete(self, model: str, messages: list[dict], max_tokens: int) -> tuple[str, int, int, float]:
+    def _complete(self, model: str, messages: list[dict], max_tokens: int,
+                  effort: str | None) -> tuple[str, int, int, float, str]:
         import litellm
 
-        litellm.drop_params = True  # e.g. reasoning models that reject temperature
-        resp = litellm.completion(model=model, messages=messages, temperature=0, max_tokens=max_tokens)
+        litellm.drop_params = True  # drop params a provider does not support instead of failing
+        # No temperature: Claude 5.5 models reject non-default sampling. reasoning_effort is litellm's
+        # portable name for Anthropic's output_config.effort; thinking tokens count against max_tokens.
+        extra = {"reasoning_effort": effort} if effort else {}
+        resp = litellm.completion(model=model, messages=messages, max_tokens=max_tokens, **extra)
         text = resp.choices[0].message.content or ""
         tin = getattr(resp.usage, "prompt_tokens", 0) or 0
         tout = getattr(resp.usage, "completion_tokens", 0) or 0
@@ -136,7 +143,7 @@ class LLM:
             cost = float(litellm.completion_cost(completion_response=resp))
         except Exception:  # noqa: BLE001 - unknown model name in litellm's price map
             cost = _price(model, tin, tout)
-        return text, tin, tout, cost
+        return text, tin, tout, cost, str(resp.choices[0].finish_reason)
 
 
 # ---------------------------------------------------------------------------
@@ -168,7 +175,7 @@ CLAIMY = re.compile(r"(\"|“|can we say|can we use|ad copy|headline|tagline|tes
 class FakeLLM(LLM):
     name = "fake"
 
-    def call(self, *, stage, model, system, payload, schema, max_tokens=1200):  # type: ignore[override]
+    def call(self, *, stage, model, system, payload, schema, max_tokens=1200, effort=None):  # type: ignore[override]
         t0 = time.perf_counter()
         with telemetry.span(f"llm.{stage}", **{"gen_ai.request.model": "fake", "langfuse.observation.type": "generation"}):
             fn = getattr(self, f"_{stage}")

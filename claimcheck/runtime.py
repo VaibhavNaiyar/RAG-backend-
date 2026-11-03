@@ -76,6 +76,7 @@ def run_agent(
         obj, usage = llm.call(
             stage=STAGE[name], model=model, system=system, payload=payload, schema=schema,
             max_tokens=spec.model.max_tokens if spec.model else 1200,
+            effort=spec.model.effort if spec.model else None,
         )
         telemetry.set_attrs(s, cost_usd=usage.cost_usd)
     telemetry.record_stage(STAGE[name], usage.latency_ms)

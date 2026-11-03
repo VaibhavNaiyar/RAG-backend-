@@ -9,8 +9,8 @@ modalities: [unstructured]
 model:
   provider: gateway
   name: fast          # config/models.yaml
-  temperature: 0.0
-  max_tokens: 400
+  effort: low         # a three-way label, not reasoning
+  max_tokens: 1000    # headroom: thinking tokens count against this cap
 
 skill: ./SKILL.md
 

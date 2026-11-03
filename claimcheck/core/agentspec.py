@@ -14,7 +14,7 @@ The SKILL.md ``description`` is authoritative; agent.yaml must NOT duplicate it.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -35,7 +35,9 @@ class ModelSpec(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
     provider: str
     name: str
-    temperature: float = Field(default=0.0, ge=0.0, le=2.0)
+    # How hard the model thinks before answering. Claude 5.5 models fix temperature, so this is
+    # the per-agent behaviour knob; None leaves the model's own default.
+    effort: Literal["low", "medium", "high", "xhigh", "max"] | None = None
     max_tokens: int = Field(default=1200, gt=0)
 
 

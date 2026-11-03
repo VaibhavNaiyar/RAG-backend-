@@ -37,3 +37,19 @@ def test_model_routes_resolve(settings):
     assert pools.resolve_model(pools.agent("planner").model, settings)
     assert pools.resolve_model(pools.agent("eval_judge").model, settings) != \
         pools.resolve_model(pools.agent("compliance_answerer").model, settings)
+
+
+def test_agent_effort_reaches_the_model_call(settings):
+    # Claude 5.5 models ignore temperature; effort is the knob that changes their behaviour and cost.
+    from claimcheck.llm import FakeLLM
+    from claimcheck.runtime import run_agent
+
+    seen = {}
+
+    class Spy(FakeLLM):
+        def call(self, **kw):
+            seen.update(kw)
+            return super().call(**kw)
+
+    run_agent("intent_router", {"question": "What does the Wegovy label say about pregnancy?"}, settings, Spy())
+    assert seen["effort"] == pools.agent("intent_router").model.effort == "low"

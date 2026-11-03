@@ -9,10 +9,13 @@ modalities: [unstructured]
 model:
   provider: gateway
   name: fast
-  temperature: 0.0
-  max_tokens: 600
+  effort: low         # picks from a short list; the reasoning happens downstream
+  max_tokens: 1500    # headroom: thinking tokens count against this cap
 
 skill: ./SKILL.md
+
+# No tools. It plans from the question, the skill descriptions and the document
+# catalogue; the search runs afterwards as a declared step of the chosen skill.
 tools: []
 
 budget:
