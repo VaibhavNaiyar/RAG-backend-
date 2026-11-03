@@ -46,8 +46,12 @@ class Index:
         """What the planner sees about the corpus — the doc.list of this system."""
         seen: dict[str, dict] = {}
         for c in self.chunks:
-            d = seen.setdefault(c.doc_id, {"doc_id": c.doc_id, "title": c.doc_title, "kind": c.kind, "chunks": 0})
+            d = seen.setdefault(c.doc_id, {"doc_id": c.doc_id, "title": c.doc_title, "kind": c.kind, "chunks": 0,
+                                           "sections": []})
             d["chunks"] += 1
+            # Headings in document order, so sub-queries can use the corpus's words, not the user's.
+            if c.section and c.section not in d["sections"]:
+                d["sections"].append(c.section)
         return list(seen.values())
 
 
@@ -109,7 +113,7 @@ class Retriever:
                 hits[i] = h
         return hits
 
-    def _rerank(self, question: str, hits: list[Hit]) -> list[Hit]:
+    def _rerank(self, question: str, hits: list[Hit], per_query: list[tuple[str, dict]] | None = None) -> list[Hit]:
         if not hits:
             return hits
         if self.reranker is None:
@@ -117,10 +121,30 @@ class Retriever:
             for h in ordered:
                 h.rerank = h.rrf / ordered[0].rrf
         else:
-            raw = self.reranker.score(question, [f"{h.chunk.section}\n{h.chunk.text}" for h in hits])
-            lo, hi = min(raw), max(raw)
-            for h, r in zip(hits, raw, strict=True):
-                h.rerank = (r - lo) / (hi - lo) if hi > lo else 1.0  # normalise to 0..1 for the margin
+            # The question scores the whole pool. Each sub-query also scores its own top candidates, and a
+            # passage keeps its best score: a sub-query names what the question does not ("randomized
+            # clinical trials"), so its passages must not be judged by the question alone.
+            texts = [f"{h.chunk.section}\n{h.chunk.text}" for h in hits]
+            jobs = [(question, list(range(len(hits))))]
+            if per_query and self.s.rerank_all_queries:
+                pos = {h.chunk.id: j for j, h in enumerate(hits)}
+                for q, cands in per_query:
+                    mine = sorted((i for i in cands if self.index.chunks[i].id in pos), key=lambda i: min(cands[i].values()))
+                    if q != question and mine:
+                        jobs.append((q, [pos[self.index.chunks[i].id] for i in mine[: self.s.subquery_rerank_k]]))
+            raw = self.reranker.score_pairs([(q, texts[j]) for q, js in jobs for j in js])
+            best: list[float | None] = [None] * len(hits)
+            at = 0
+            for _, js in jobs:
+                r, at = raw[at : at + len(js)], at + len(js)
+                lo, hi = min(r), max(r)
+                if hi > lo:  # a query that scores everything alike says nothing about order
+                    for j, v in zip(js, r, strict=True):
+                        n = (v - lo) / (hi - lo)  # 0..1 for the margin
+                        best[j] = n if best[j] is None else max(best[j], n)
+            informative = any(b is not None for b in best)
+            for h, b in zip(hits, best, strict=True):
+                h.rerank = b if b is not None else (0.0 if informative else 1.0)
             ordered = sorted(hits, key=lambda h: -(h.rerank or 0))
         best = ordered[0].rerank or 0
         kept = [h for j, h in enumerate(ordered) if j < self.s.rerank_min_keep or (best - (h.rerank or 0)) <= self.s.rerank_margin]
@@ -166,14 +190,22 @@ class Retriever:
     def _search_once(self, question: str, sub_queries: list[str], doc_ids: list[str]) -> list[Hit]:
         mask = np.array([not doc_ids or c.doc_id in doc_ids for c in self.index.chunks])
         queries = list(dict.fromkeys([*sub_queries, question]))  # original question always included
-        fused = self._fuse([self._candidates(q, mask) for q in queries])
+        per_query = [(q, self._candidates(q, mask)) for q in queries]
+        fused = self._fuse([c for _, c in per_query])
         pool = sorted(fused.values(), key=lambda h: -h.rrf)[: self.s.candidate_k]
-        kept = self._rerank(question, pool)
+        kept = self._rerank(question, pool, per_query)
         if self.s.scope_floor:
             # The margin cut keeps whatever the reranker likes best, which can drop a whole document
             # the planner scoped (a claim review lost brand_rules). Each scoped document keeps its best.
             for d in doc_ids:
-                best = max((h for h in pool if h.chunk.doc_id == d), key=lambda h: h.rerank or 0, default=None)
-                if best and not any(h.chunk.doc_id == d for h in kept):
+                if any(h.chunk.doc_id == d for h in kept):
+                    continue
+                cands = [h for h in pool if h.chunk.doc_id == d]
+                if not cands:  # the document missed the pool entirely: search it on its own
+                    only_d = np.array([c.doc_id == d for c in self.index.chunks])
+                    cands = sorted(self._fuse([self._candidates(q, only_d) for q in queries]).values(),
+                                   key=lambda h: -h.rrf)[:1]
+                best = max(cands, key=lambda h: h.rerank or 0, default=None)
+                if best:
                     kept = (kept if len(kept) < self.s.top_k else kept[:-1]) + [best]
         return kept

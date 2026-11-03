@@ -43,6 +43,9 @@ class Settings:
     rerank_margin: float = 0.35  # drop chunks scoring this far below the best (normalised 0..1)
     rerank_min_keep: int = 3
     scope_floor: bool = True     # every scoped document keeps its best passage through the margin cut
+    rerank_all_queries: bool = True  # rerank against every sub-query, not only the question
+    subquery_rerank_k: int = 8   # each sub-query reranks only its own top candidates (CPU cost)
+    research_once: bool = True  # thin evidence (answerer says so) gets one reformulated search
     chunk_chars: int = 900
     chunk_overlap: int = 150
 

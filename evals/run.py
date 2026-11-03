@@ -44,6 +44,8 @@ VARIANTS: dict[str, dict] = {
     "keep5": {"rerank_min_keep": 5},
     "margin50": {"rerank_margin": 0.5},
     "no_scope_floor": {"scope_floor": False},
+    "rerank_question_only": {"rerank_all_queries": False},
+    "no_research": {"research_once": False},
     "deep": {"_mode": "deep"},
     # A deliberately bad prompt change, to prove the harness + verifier catch drift.
     "regressed_prompt": {"answerer_extra": DRIFT},

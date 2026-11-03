@@ -61,6 +61,9 @@ class LexicalReranker:
         q = set(_W.findall(query.lower()))
         return [len(q & set(_W.findall(d.lower()))) / math.sqrt(1 + len(q)) for d in docs]
 
+    def score_pairs(self, pairs: list[tuple[str, str]]) -> list[float]:
+        return [self.score(q, [d])[0] for q, d in pairs]
+
 
 class CrossEncoderReranker:
     name = "Xenova/ms-marco-MiniLM-L-6-v2"
@@ -72,6 +75,10 @@ class CrossEncoderReranker:
 
     def score(self, query: str, docs: list[str]) -> list[float]:
         return [float(s) for s in self._m.rerank(query, docs)]
+
+    def score_pairs(self, pairs: list[tuple[str, str]]) -> list[float]:
+        # One batched call for several queries; ~1.3 s per 30 passages on CPU, so the pair count is what costs.
+        return [float(s) for s in self._m.rerank_pairs(pairs, batch_size=8)]
 
 
 @lru_cache(maxsize=4)
