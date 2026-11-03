@@ -117,11 +117,11 @@ goldens:
 
   - id: COMP-03
     topic: compounding
-    question: What does FDA say about the shortage status of semaglutide and tirzepatide?
+    question: What telehealth red flags does FDA warn consumers about?
     expect_route: compliance_question
     expect_skill: compounding-policy
     expect_docs: [fda_compounded_glp1]
-    must_mention: [["shortage"], ["resolved", "no longer"]]
+    must_mention: [["same as"], ["prescription", "screening"]]
 
   # ------------------------------------------------------------ FTC / ad rules
   - id: FTC-01
