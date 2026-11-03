@@ -10,7 +10,7 @@ model:
   provider: gateway
   name: fast          # config/models.yaml
   temperature: 0.0
-  max_tokens: 200
+  max_tokens: 400
 
 skill: ./SKILL.md
 

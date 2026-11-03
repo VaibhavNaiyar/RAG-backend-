@@ -11,7 +11,7 @@ model:
   provider: gateway
   name: judge
   temperature: 0.0
-  max_tokens: 900
+  max_tokens: 2000
 
 skill: ./SKILL.md
 tools: []
