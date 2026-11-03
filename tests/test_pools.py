@@ -53,3 +53,18 @@ def test_agent_effort_reaches_the_model_call(settings):
 
     run_agent("intent_router", {"question": "What does the Wegovy label say about pregnancy?"}, settings, Spy())
     assert seen["effort"] == pools.agent("intent_router").model.effort == "low"
+
+
+def test_agent_span_is_an_agent_not_a_generation_in_langfuse(settings):
+    # Langfuse turns any span with a `model` attribute into a generation; only cc.llm.* are model calls.
+    from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
+
+    from claimcheck import telemetry
+    from claimcheck.llm import FakeLLM
+    from claimcheck.runtime import run_agent
+
+    spans = InMemorySpanExporter()
+    telemetry.setup_telemetry("test", extra_span_exporter=spans)
+    run_agent("intent_router", {"question": "What does the Wegovy label say about pregnancy?"}, settings, FakeLLM())
+    agent = next(s for s in spans.get_finished_spans() if s.name == "cc.agent.router")
+    assert agent.attributes["langfuse.observation.type"] == "agent"

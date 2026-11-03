@@ -72,7 +72,9 @@ def run_agent(
     system, version = _system_prompt(name, spec.system_prompt, settings)
     if extra_system:
         system = f"{system}\n\n{extra_system}"
-    with telemetry.span(f"agent.{STAGE[name]}", agent=name, model=model, prompt_version=version) as s:
+    # Explicit type: Langfuse would read `model` and count this wrapper as a second, empty generation.
+    with telemetry.span(f"agent.{STAGE[name]}", agent=name, model=model, prompt_version=version,
+                        **{"langfuse.observation.type": "agent"}) as s:
         obj, usage = llm.call(
             stage=STAGE[name], model=model, system=system, payload=payload, schema=schema,
             max_tokens=spec.model.max_tokens if spec.model else 1200,
