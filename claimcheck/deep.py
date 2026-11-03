@@ -20,6 +20,7 @@ young framework stays in one file.
 from __future__ import annotations
 
 import json
+import re
 import time
 import uuid
 
@@ -29,7 +30,7 @@ from claimcheck.core import pools
 from claimcheck.llm import LLM, _price, make_llm
 from claimcheck.pipeline import ESCALATION, REFUSALS, _INJECTION, _evidence
 from claimcheck.retrieve import Retriever
-from claimcheck.schemas import Answer, Hit, RouteDecision, RunResult, StageUsage
+from claimcheck.schemas import Answer, Hit, Plan, RouteDecision, RunResult, StageUsage
 from claimcheck.verify import verify
 
 SYSTEM = """You are the compliance copilot for a telehealth company's INTERNAL marketing team.
@@ -45,6 +46,27 @@ SYSTEM = """You are the compliance copilot for a telehealth company's INTERNAL m
 
 Document ids you can scope a search to: {docs}
 """
+
+
+_SKILL_PATH = re.compile(r"/pool/([^/]+)/SKILL\.md")
+
+
+def _plan_from(messages: list, question: str) -> Plan | None:
+    """The skill the agent chose is the first SKILL.md it read; its searches are the sub-queries."""
+    skill, queries, docs = None, [], set()
+    for m in messages:
+        for tc in getattr(m, "tool_calls", None) or []:
+            args = tc.get("args") or {}
+            if tc.get("name") == "read_file" and not skill:
+                hit = _SKILL_PATH.search(str(args.get("file_path") or args.get("path") or ""))
+                skill = hit.group(1) if hit else None
+            elif tc.get("name") == "search_corpus":
+                queries.append(args.get("query", ""))
+                docs.update(args.get("doc_ids") or [])
+    if not skill:
+        return None
+    return Plan(skill=skill, doc_ids=sorted(docs), sub_queries=queries[:3] or [question],
+                rationale="deep agent read this skill")
 
 
 def _to_langchain(model: str) -> str:
@@ -117,7 +139,7 @@ class DeepPipeline:
                 collected: list[Hit] = []
                 agent, model = build(self.s, self.retriever, collected)
                 cb = UsageMetadataCallbackHandler()
-                with telemetry.span("agent.deep", model=model):
+                with telemetry.span("agent.deep", model=model, **{"langfuse.observation.type": "agent"}):
                     out = agent.invoke({"messages": [{"role": "user", "content": question}]},
                                        config={"callbacks": [cb], "recursion_limit": 40})
                 tin = sum(v.get("input_tokens", 0) for v in cb.usage_metadata.values())
@@ -127,6 +149,7 @@ class DeepPipeline:
                                             latency_ms=round((time.perf_counter() - t0) * 1000, 1)))
                 draft: Answer | None = out.get("structured_response")
                 run.hits, run.draft = collected, draft
+                run.plan = _plan_from(out.get("messages", []), question)
                 if draft is None:
                     run.status, run.message = "escalated", ESCALATION
                 elif not collected and not draft.claims:

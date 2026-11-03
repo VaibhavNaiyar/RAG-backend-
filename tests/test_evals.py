@@ -1,3 +1,5 @@
+import pytest
+
 from evals import run as ev
 
 
@@ -47,3 +49,24 @@ def test_judge_sees_document_and_section_like_the_answerer(settings, pipeline, m
     r = pipeline.run("Can an ad say 'Lose 20 lbs in your first month - guaranteed'?")
     metrics.judge_groundedness(r, settings, FakeLLM())
     assert all({"document", "section", "text"} <= set(c) for c in seen["context"])
+
+
+def test_deep_mode_cost_uses_the_real_model_price():
+    # deep.py prices from token counts; a stale fallback table made Haiku 5.5 look 10x dearer than the pipeline.
+    from claimcheck.llm import _price
+
+    assert _price("anthropic/claude-haiku-5-5", 40_000, 1_000) == pytest.approx(0.0045)  # $0.10 / $0.50 per 1M
+
+
+def test_deep_mode_reports_the_skill_its_agent_read():
+    # The deep agent picks a skill by reading its SKILL.md; without recording it, skill_accuracy scores 0.
+    from types import SimpleNamespace as Msg
+
+    from claimcheck.deep import _plan_from
+
+    messages = [Msg(tool_calls=[{"name": "read_file", "args": {"file_path": "/pool/label-facts/SKILL.md"}}]),
+                Msg(tool_calls=[{"name": "search_corpus", "args": {"query": "Zepbound maintenance dose"}}]),
+                Msg(content="done")]
+    plan = _plan_from(messages, "q")
+    assert plan.skill == "label-facts" and plan.sub_queries == ["Zepbound maintenance dose"]
+    assert _plan_from([Msg(content="declined")], "q") is None

@@ -43,6 +43,13 @@ FALLBACK_PRICES = {
 
 
 def _price(model: str, tin: int, tout: int) -> float:
+    try:  # litellm's price map knows current models; the table below is only for names it lacks
+        import litellm
+
+        pin, pout = litellm.cost_per_token(model=model, prompt_tokens=tin, completion_tokens=tout)
+        return pin + pout
+    except Exception:  # noqa: BLE001
+        pass
     for key, (pi, po) in FALLBACK_PRICES.items():
         if key in model:
             return (tin * pi + tout * po) / 1_000_000
