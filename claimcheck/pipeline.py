@@ -70,7 +70,7 @@ class Pipeline:
         run.usage.append(u)
         return d  # type: ignore[return-value]
 
-    def plan(self, q: str, route: RouteDecision, run: RunResult) -> Plan:
+    def plan(self, q: str, route: RouteDecision, run: RunResult, retry: dict | None = None) -> Plan:
         payload = {
             "question": q,
             "topic": route.topic,
@@ -78,6 +78,8 @@ class Pipeline:
             "skill_sources": {n: s.extra.get("sources", []) for n, s in pools.skills().items()},
             "documents": self.retriever.index.catalogue(),
         }
+        if retry:
+            payload["retry"] = retry
         p, u = run_agent("planner", payload, self.s, self.llm)
         run.usage.append(u)
         assert isinstance(p, Plan)
@@ -116,11 +118,51 @@ class Pipeline:
             v = run.verification
             for name, value in (("supported_fraction", v.supported_fraction), ("claims_removed", v.removed),
                                 ("escalated", float(run.status == "escalated")),
-                                ("widened_scope", float(run.retried_unscoped))):
+                                ("widened_scope", float(run.retried_unscoped)),
+                                ("researched", float(run.researched))):
                 telemetry.score(run.trace_id, f"live.{name}", float(value))
         telemetry.record_request(run.status, run.route.route if run.route else "", run.plan.skill if run.plan else "",
                                  "pipeline", run.cost_usd, wall)
         return run
+
+    def _answer(self, q: str, skill, run: RunResult) -> Answer:
+        rules = skill.section("Rules")
+        refs = "\n\n".join(
+            pools.agent("compliance_answerer").skill.read_reference(r)
+            for r in skill.extra.get("answerer_references", []) or []
+        )
+        extra = f"## Selected skill: {skill.name}\n{rules}" + (f"\n\n{refs}" if refs else "")
+        if self.s.answerer_extra:  # eval-only: simulates a prompt regression
+            extra += f"\n\n{self.s.answerer_extra}"
+        payload = {
+            "question": q,
+            "skill": skill.name,
+            "verdict_mode": skill.extra.get("verdict", "informational"),
+            "evidence": _evidence(run.hits),
+        }
+        d, u = run_agent("compliance_answerer", payload, self.s, self.llm, extra_system=extra)
+        run.usage.append(u)
+        return d  # type: ignore[return-value]
+
+    def _research(self, q: str, skill, run: RunResult, draft: Answer) -> None:
+        """One reformulated search when the answerer says the evidence is thin; never a second.
+
+        The user's term may appear nowhere in the corpus. The planner re-plans from what WAS found
+        (sections, the answerer's account of the gap), so the new queries can use the corpus's words.
+        """
+        with telemetry.span("research", previous=run.plan.sub_queries) as sp:
+            retry = {"previous_sub_queries": run.plan.sub_queries, "missing": draft.summary,
+                     "found_sections": sorted({h.chunk.section for h in run.hits})}
+            p = self.plan(q, run.route, run, retry=retry)
+            hits, _ = self.retriever.search(q, p.sub_queries, run.plan.doc_ids,
+                                            allowed=skill.extra.get("sources") or None)
+            have = {h.chunk.id for h in run.hits}
+            new = [h for h in hits if h.chunk.id not in have]
+            for n, h in enumerate(new, start=len(run.hits) + 1):  # earlier refs keep their numbers
+                h.ref = f"E{n}"
+            run.hits = run.hits + new
+            run.researched = True
+            telemetry.set_attrs(sp, sub_queries=p.sub_queries, added=[h.chunk.id for h in new])
 
     def _run(self, q: str, run: RunResult) -> None:
         run.route = self.route(q, run)
@@ -147,23 +189,10 @@ class Pipeline:
                     return
 
             elif step.name == "compliance_answerer":
-                rules = skill.section("Rules")
-                refs = "\n\n".join(
-                    pools.agent("compliance_answerer").skill.read_reference(r)
-                    for r in skill.extra.get("answerer_references", []) or []
-                )
-                extra = f"## Selected skill: {skill.name}\n{rules}" + (f"\n\n{refs}" if refs else "")
-                if self.s.answerer_extra:  # eval-only: simulates a prompt regression
-                    extra += f"\n\n{self.s.answerer_extra}"
-                payload = {
-                    "question": q,
-                    "skill": skill.name,
-                    "verdict_mode": skill.extra.get("verdict", "informational"),
-                    "evidence": _evidence(run.hits),
-                }
-                d, u = run_agent("compliance_answerer", payload, self.s, self.llm, extra_system=extra)
-                run.usage.append(u)
-                draft = d  # type: ignore[assignment]
+                draft = self._answer(q, skill, run)
+                if draft.insufficient_evidence and run.hits and self.s.research_once:
+                    self._research(q, skill, run, draft)
+                    draft = self._answer(q, skill, run)
                 run.draft = draft
 
             elif step.name == "claim_verifier":

@@ -27,11 +27,20 @@ answer.
    - A question naming one drug scopes to that drug's label, not both.
    - A claim review ALWAYS includes `brand_rules`, plus the regulator
      documents the claim touches.
-3. **Write 1–3 sub-queries** in the CORPUS's vocabulary, not the user's. Labels
-   say "contraindicated", "boxed warning", "maintenance dosage"; the FTC says
-   "competent and reliable scientific evidence", "establishment claim"; the
-   brand rules use their BR numbers' titles. One sub-query per distinct thing
-   that must be found.
+3. **Write 1–3 sub-queries** in the CORPUS's vocabulary, not the user's. Each
+   catalogue entry lists that document's `sections` (its headings, in order).
+   When a heading names what is being asked, use the heading's own words: the
+   user's term may appear nowhere in the document. Labels say
+   "contraindicated", "boxed warning", "maintenance dosage"; the brand rules use
+   their BR numbers' titles. One sub-query per distinct thing that must be
+   found.
+
+4. **When `retry` is present, the first search came back thin.** Keep the same
+   skill and documents. Write 1–3 NEW sub-queries, none repeating
+   `previous_sub_queries`. `missing` is the answerer's account of what the
+   evidence lacked, and often quotes the words the documents use for it ("such
+   as 'clinically proven'"); pair those words with the matching heading from
+   `sections`. There is no third search, so make these genuinely different.
 
 ## Rules
 

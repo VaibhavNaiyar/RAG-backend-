@@ -50,7 +50,36 @@ def test_every_answered_question_gets_live_quality_scores(pipeline, monkeypatch)
     seen = {}
     monkeypatch.setattr(telemetry, "score", lambda trace_id, name, value, **kw: seen.update({name: value}))
     pipeline.run("What is the maintenance dosage of Wegovy?")
-    assert set(seen) == {"live.supported_fraction", "live.claims_removed", "live.escalated", "live.widened_scope"}
+    assert set(seen) == {"live.supported_fraction", "live.claims_removed", "live.escalated", "live.widened_scope",
+                         "live.researched"}
     seen.clear()
     pipeline.run("Write a poem about the sea")
     assert not seen  # a refusal has no answer to score
+
+
+def test_thin_evidence_gets_one_reformulated_search(settings):
+    # The answerer saying "the evidence doesn't cover this" is a signal, not a conclusion: re-plan the
+    # queries once from what was found, search again, re-answer (FTC-02: the corpus's word was not the user's).
+    from claimcheck.llm import FakeLLM
+    from claimcheck.pipeline import Pipeline
+
+    calls = {"planner": [], "answerer": []}
+
+    class Thin(FakeLLM):
+        def _planner(self, p):
+            calls["planner"].append(p)
+            return super()._planner(p)
+
+        def _answerer(self, p, system=""):
+            calls["answerer"].append(p)
+            return {**super()._answerer(p, system), "insufficient_evidence": len(calls["answerer"]) == 1}
+
+    r = Pipeline(settings, llm=Thin()).run("What is the maintenance dosage of Wegovy?")
+    assert len(calls["planner"]) == 2 and "retry" in calls["planner"][1] and r.researched
+    assert len(calls["answerer"]) == 2  # once, never a third time
+    first, second = ({e["ref"] for e in p["evidence"]} for p in calls["answerer"])
+    assert first <= second  # the second answer keeps what the first search found
+
+    calls = {"planner": [], "answerer": []}
+    Pipeline(settings.with_(research_once=False), llm=Thin()).run("What is the maintenance dosage of Wegovy?")
+    assert len(calls["answerer"]) == 1

@@ -114,6 +114,7 @@ class RunResult(BaseModel):
     message: str = ""
     usage: list[StageUsage] = Field(default_factory=list)
     retried_unscoped: bool = False
+    researched: bool = False  # thin evidence triggered one reformulated search
 
     @property
     def cost_usd(self) -> float:
