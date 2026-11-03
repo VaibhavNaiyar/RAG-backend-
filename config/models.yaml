@@ -6,5 +6,5 @@
 
 routes:
   fast:  anthropic/claude-haiku-5-5    # intent_router, planner, claim_verifier
-  smart: anthropic/claude-sonnet-5-5   # compliance_answerer
-  judge: anthropic/claude-opus-5-5    # eval_judge — a stronger tier than the answerer it grades
+  smart: anthropic/claude-haiku-5-5    # compliance_answerer — Haiku to save credit; CC_SMART_MODEL=anthropic/claude-sonnet-5-5 for a quality run
+  judge: anthropic/claude-sonnet-5-5   # eval_judge — a stronger tier than the answerer it grades

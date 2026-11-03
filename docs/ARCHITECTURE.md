@@ -50,7 +50,7 @@ skills/pool/claim-review/SKILL.md   a procedure: which steps, which sources, whi
   name supplied by the model is never treated as a path.
 - **Model routes, not model names.** Agents say `name: fast`, and
   `config/models.yaml` maps that to a concrete model. The judge route is a
-  stronger model (Opus) than the answerer it grades (Sonnet), so a weaker
+  stronger model (Sonnet) than the answerer it grades (Haiku), so a weaker
   model never signs off on its own output. A different family is a one-line swap.
 
 ## Retrieval
