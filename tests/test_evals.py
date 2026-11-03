@@ -28,3 +28,22 @@ def test_each_golden_gets_its_own_trace(settings):
     scores, _ = ev.run_variant("baseline", gs, settings, use_judge=False, verbose=False)
     ids = [s.trace_id for s in scores]
     assert all(ids) and len(set(ids)) == len(ids)
+
+
+def test_judge_sees_document_and_section_like_the_answerer(settings, pipeline, monkeypatch):
+    # "BR-3" and "FDA" live in the section heading and document title, not the chunk text. A judge
+    # shown bare text marks every correctly cited rule as unsupported.
+    from claimcheck.llm import FakeLLM
+    from evals import metrics
+
+    seen = {}
+    real = metrics.run_agent
+
+    def spy(name, payload, settings_, llm, **kw):
+        seen.update(payload)
+        return real(name, payload, settings_, llm, **kw)
+
+    monkeypatch.setattr(metrics, "run_agent", spy)
+    r = pipeline.run("Can an ad say 'Lose 20 lbs in your first month - guaranteed'?")
+    metrics.judge_groundedness(r, settings, FakeLLM())
+    assert all({"document", "section", "text"} <= set(c) for c in seen["context"])

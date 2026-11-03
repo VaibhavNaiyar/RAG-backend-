@@ -37,6 +37,7 @@ class GoldenScore:
     forbidden_hit: list[str] = field(default_factory=list)
     escalated: bool = False
     cost_usd: float = 0.0
+    judge_cost_usd: float = 0.0   # eval-only spend, kept out of the per-question cost
     latency_ms: float = 0.0
     trace_id: str = ""
     failed_stage: str | None = None
@@ -62,7 +63,10 @@ def judge_groundedness(r: RunResult, settings: Settings, llm: LLM) -> tuple[floa
     """(fraction of final claims the judge finds supported by retrieved context, judge cost)."""
     if not (r.final and r.final.claims and r.hits):
         return None, 0.0
-    payload = {"claims": [c.text for c in r.final.claims], "context": [h.chunk.text for h in r.hits]}
+    # Same metadata the answerer saw: "BR-3" lives in a section heading and "FDA" in a document title.
+    context = [{"document": h.chunk.doc_title, "page": h.chunk.page, "section": h.chunk.section,
+                "text": h.chunk.text} for h in r.hits]
+    payload = {"claims": [c.text for c in r.final.claims], "context": context}
     rep, usage = run_agent("eval_judge", payload, settings, llm)
     assert isinstance(rep, VerifierReport)
     n = len(r.final.claims)
@@ -110,7 +114,7 @@ def score(g: dict, r: RunResult, settings: Settings, judge_llm: LLM, *, use_judg
     if g.get("expect_verdict"):
         s.verdict_ok = bool(r.final) and r.final.verdict in g["expect_verdict"]
     if use_judge:
-        s.groundedness, jc = judge_groundedness(r, settings, judge_llm)
+        s.groundedness, s.judge_cost_usd = judge_groundedness(r, settings, judge_llm)
 
     # attribution — first stage that went wrong
     if s.skill_ok is False:
@@ -153,6 +157,7 @@ def aggregate(scores: list[GoldenScore]) -> dict:
         "escalation_rate": mean(s.escalated for s in in_scope),
         "cost_usd_total": round(sum(s.cost_usd for s in scores), 4),
         "cost_usd_per_q": round(sum(s.cost_usd for s in scores) / max(1, len(scores)), 5),
+        "judge_cost_usd_total": round(sum(s.judge_cost_usd for s in scores), 4),
         "latency_p50_ms": lat[len(lat) // 2] if lat else 0,
         "latency_p95_ms": lat[min(len(lat) - 1, int(len(lat) * 0.95))] if lat else 0,
         "failures_by_stage": {st: sum(1 for s in scores if s.failed_stage == st) for st in STAGES},

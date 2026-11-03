@@ -237,7 +237,7 @@ class FakeLLM(LLM):
         return {"checks": checks}
 
     def _judge(self, p):
-        ctx = " ".join(p["context"])
+        ctx = " ".join(f"{c['section']} {c['text']}" if isinstance(c, dict) else c for c in p["context"])
         checks = []
         for i, c in enumerate(p["claims"]):
             ov = _overlap(c, ctx)
