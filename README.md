@@ -12,25 +12,25 @@ golden set. A failure is attributed to the stage that caused it.
 
 ```
 question
-   â”‚
-   â–¼
+   │
+   ▼
 [guard] regex prompt-injection check (no model, not steerable)
-   â”‚
-   â–¼
-intent_router  (fast)  â”€â”€ patient_medical_advice / off_topic â”€â”€â–¶ refuse
-   â”‚ compliance_question
-   â–¼
+   │
+   ▼
+intent_router  (fast)  ── patient_medical_advice / off_topic ──▶ refuse
+   │ compliance_question
+   ▼
 planner        (fast)  picks a planner SKILL + doc scope + 1-3 sub-queries
-   â”‚
-   â–¼  executes the steps that SKILL.md names, in order:
-   1. search (tool)        BM25 + vectors â†’ RRF â†’ cross-encoder rerank â†’ margin
+   │
+   ▼  executes the steps that SKILL.md names, in order:
+   1. search (tool)        BM25 + vectors → RRF → cross-encoder rerank → margin
                            scope widens only into the skill's own sources
    2. compliance_answerer  (smart)  verdict + one-sentence claims, each citing E-refs
    3. claim_verifier       (fast)   code checks citations (0 tokens), then the LLM labels each claim;
                                     code drops / rewrites / escalates
-   â”‚
-   â–¼
-answer  Â·  OTel spans â†’ Tempo + Langfuse  Â·  OTel metrics â†’ Prometheus â†’ Grafana
+   │
+   ▼
+answer  ·  OTel spans → Tempo + Langfuse  ·  OTel metrics → Prometheus → Grafana
 ```
 
 ## Repo map
@@ -58,7 +58,7 @@ pip install -e '.[local,langfuse,dev]'          # add ,deep for the deepagents m
 cp .env.example .env                            # add ANTHROPIC_API_KEY (used by every agent, including the judge)
 
 python scripts/fetch_corpus.py                  # 4 public docs; prints a manual link if a site blocks it
-python -m claimcheck.cli ingest                 # parse â†’ chunk â†’ embed (local, free)
+python -m claimcheck.cli ingest                 # parse → chunk → embed (local, free)
 python -m claimcheck.cli pools                  # agents + skills as the planner sees them
 python -m claimcheck.cli ask 'Can we say "clinically proven" for compounded semaglutide?'
 
@@ -68,9 +68,9 @@ python -m claimcheck.cli serve                  # UI at http://localhost:8000
 Observability (optional):
 
 ```bash
-docker compose up -d && python scripts/import_dashboard.py   # Grafana at :3000 â†’ "ClaimCheck"
+docker compose up -d && python scripts/import_dashboard.py   # Grafana at :3000 → "ClaimCheck"
 # Langfuse: set LANGFUSE_PUBLIC_KEY / SECRET_KEY in .env (cloud free tier)
-python -m claimcheck.cli prompts push                        # SKILL.md bodies â†’ Langfuse prompt management
+python -m claimcheck.cli prompts push                        # SKILL.md bodies → Langfuse prompt management
 ```
 
 Evals:
@@ -94,11 +94,12 @@ pytest
 
 ## Cost
 
-Per question: 3 calls on the fast route plus 1 on the smart route, about
-**$0.02â€“0.03** with Haiku and Sonnet. Embeddings and reranking run locally
-(fastembed, ONNX), so they cost $0. A full 25-golden eval run with the judge
-costs about $0.75. Set `CC_SMART_MODEL=anthropic/claude-haiku-5-5` to cut that
-by about 3x while iterating.
+Per question: 3 calls on the fast route plus 1 on the smart route. Both routes
+default to Haiku to keep credit use low; the eval judge runs on Sonnet, so it is
+always a stronger model than the one it grades. Embeddings and reranking run
+locally (fastembed, ONNX), so they cost $0. Set
+`CC_SMART_MODEL=anthropic/claude-sonnet-5-5` to put the answerer on Sonnet when
+quality matters more than cost. Every run reports its measured cost per stage.
 
 > Demo project. The brand rules are invented and simplified. Nothing here is
 > legal advice, and every real answer goes to a human compliance reviewer.
