@@ -24,4 +24,3 @@ budget:
   max_cost_usd: 0.03
 
 response_format: Answer
-writes: [draft_answer]

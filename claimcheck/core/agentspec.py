@@ -63,7 +63,6 @@ class AgentSpec(BaseModel):
     scopes: tuple[str, ...] = ()
     budget: Budget = Field(default_factory=Budget)
     response_format: str | None = None
-    writes: tuple[str, ...] = ()
     path: Path | None = None
 
     @field_validator("name")
@@ -114,7 +113,6 @@ def parse_agent_spec(source: str | dict[str, Any], *, path: Path | None = None,
         "scopes": tuple(data.pop("scopes", ()) or ()),
         "budget": Budget(**budget_raw) if isinstance(budget_raw, dict) else Budget(),
         "response_format": data.pop("response_format", None),
-        "writes": tuple(data.pop("writes", ()) or ()),
         "path": path.parent if path else None,
         "description": skill.description if skill else "",
     }

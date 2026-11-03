@@ -22,4 +22,3 @@ budget:
   max_steps: 1
 
 response_format: RouteDecision
-writes: [route]
